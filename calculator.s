@@ -5,8 +5,8 @@
 ;Due: 10/04/2017
 
 ;	Description: 	A calculator program that takes an infix expression
-;					and calculates the result by rearranging expression
-;					into postfix.
+;			and calculates the result by rearranging expression
+;			into postfix.
 
 ;	v0.0: 	Currently supports infix translation into postfix for + - and * operators
 ;			Undefined operators are set to *
@@ -33,6 +33,8 @@
 ;		pop stack to print then push incoming operator.
 ;	8. Pop any remaining operators at the end in normal popping order.
 
+
+
 extern getchar
 extern malloc
 extern larray_print
@@ -44,7 +46,7 @@ extern larray_print
 ;====================================================
 ;48 ~ 57 is 0 ~ 9 is 0x30 ~ 0x39
 ;40 ( 0x28
-;41	) 0x29
+;41 ) 0x29
 ;42 * 0x2a
 ;43 + 0x2b
 ;45 - 0x2d
