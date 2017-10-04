@@ -150,20 +150,20 @@ rearrange:
 	mov QWORD[rax +  rsi * 8],rdx ;ELEMENT ADDED
 	add rsi,1
 	
-	backFromHandleOp:
-	
+backFromHandleOp:
 	add rcx,1
 	cmp rcx,r11
 	jl rearrange
 	
-	popTheRest:
-	
+popTheRest:
 	cmp r10,rsp
 	je allPopped
 	
 	pop rdi
 	mov QWORD[rax + rsi * 8], rdi
+	add rsi,1
 	
+	cmp r10,rsp
 	jg popTheRest
 ;****************************************************
 
@@ -177,13 +177,61 @@ rearrange:
 
 allPopped:
 
-mov rdi,rax
-mov rsi,r11
-call larray_print
+;mov rdi,rax
+;mov rsi,r11
+;call larray_print
 
-mov rax,0
+mov rcx,0
+evaluate:
+	mov rsi,[rax + rcx * 8]
+	add rcx,1
+	
+	cmp rsi,0x30
+	jl isOperator
+	
+	sub rsi,0x30
+	push rsi
+	
+backToCheckSize:
+	cmp rcx,r11
+	jl evaluate
+	
+	pop rax
+	
+	ret
+	
+isOperator:
+	cmp rsi,0x2a
+	je multiply
+	
+	cmp rsi,0x2b
+	je addition
+	
+	cmp rsi,0x2d
+	je subtraction
+	
+	jmp invalidOp
+	
+multiply:
+	pop rdx
+	pop rsi
+	imul rsi,rdx
+	push rsi
+	jmp backToCheckSize
 
-ret
+addition:
+	pop rdx
+	pop rsi
+	add rsi,rdx
+	push rsi
+	jmp backToCheckSize
+
+subtraction:
+	pop rdx
+	pop rsi
+	sub rsi,rdx
+	push rsi
+	jmp backToCheckSize
 ;****************************************************
 	
 	
