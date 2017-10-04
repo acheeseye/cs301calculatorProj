@@ -129,7 +129,7 @@ storeStringToMalloc:
 ;rcx is the loop counter
 ;rsi is a counter separate from rcx so the system increments correctly
 ;	when an operator stores a value into rax string
-;	(when loop goes into handleOp, rsi doesn't NEED to increment,
+;	(when loop goes into storeOp, rsi doesn't NEED to increment,
 ;	only when the stack is popped and data is stored to rax str)
 ;r10 assists with knowing where rsp began; we need this for:
 ;	always pushing operator when stack is blank
@@ -143,7 +143,7 @@ mov r10,rsp
 rearrange:
 	mov rdx,QWORD[r9 + rcx * 8]
 	cmp rdx,0x30
-	jl handleOp
+	jl storeOp
 	cmp rdx,0x39
 	jg invalidInt
 	
@@ -187,7 +187,7 @@ evaluate:
 	add rcx,1
 	
 	cmp rsi,0x30
-	jl isOperator
+	jl useOp
 	
 	sub rsi,0x30
 	push rsi
@@ -197,10 +197,17 @@ backToCheckSize:
 	jl evaluate
 	
 	pop rax
-	
 	ret
-	
-isOperator:
+;****************************************************
+;*******************End of system********************
+;****************************************************
+
+
+
+;====================================================
+;Operator evaluation (useOp loop)
+;====================================================
+useOp:
 	cmp rsi,0x2a
 	je multiply
 	
@@ -237,7 +244,7 @@ subtraction:
 	
 	
 ;====================================================
-;Operation handling
+;Operator storing order (storeOp loop)
 ;====================================================
 ;rdi is scratch register holding no important value 
 ;	(string has already been copied)
@@ -282,7 +289,7 @@ closeParenOp:
 	
 	jmp backFromHandleOp
 	
-handleOp:
+storeOp:
 	;no operators in stack (pointer location)
 	cmp rsp,r10
 	je pushOp
@@ -315,6 +322,5 @@ invalidInt:
 	
 invalidOp:
 	mov rdx,0x2a
-	
 ;****************************************************
 
