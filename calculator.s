@@ -33,6 +33,10 @@
 ;		pop stack to print then push incoming operator.
 ;	8. Pop any remaining operators at the end in normal popping order.
 
+;Sources:
+;http://csis.pace.edu/~wolf/CS122/infix-postfix.htm
+;http://scriptasylum.com/tutorials/infix_postfix/algorithms/postfix-evaluation/
+
 
 
 extern getchar
