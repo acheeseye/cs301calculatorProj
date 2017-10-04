@@ -123,6 +123,8 @@ storeStringToMalloc:
 ;rcx is the loop counter
 ;rsi is a counter separate from rcx so the system increments correctly
 ;	when an operator stores a value into rax string
+;	(when loop goes into handleOp, rsi doesn't NEED to increment,
+;	only when the stack is popped and data is stored to rax str)
 ;r10 assists with knowing where rsp began; we need this for:
 ;	always pushing operator when stack is blank
 ;	making sure to pop all the non-popped operators
