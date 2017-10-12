@@ -57,7 +57,7 @@ mov r11,rcx ;r11 is number of characters
 
 
 ;====================================================
-;malloc twice for storage (r9 & rax)
+;malloc twice for storage and store first string
 ;====================================================
 ;Creates two mallocs for storing strings. r9 for the
 ;first string and rax for the second string. r9 will
@@ -67,6 +67,10 @@ mov r11,rcx ;r11 is number of characters
 ;r9 is pointer to first string
 ;rax is pointer to second string
 ;r11 is character count
+
+;rcx is the loop counter
+;rdx is intermediate translator
+;rdi is pointer to beginning of input string
 ;====================================================
 
 push r11
@@ -84,16 +88,6 @@ call malloc ;rax is pointer to second string of same size
 pop r9 ;pointer to first string
 pop r11
 pop rdi
-;****************************************************
-
-
-;====================================================
-;Takes input and stores to 1st string (r9 head)
-;====================================================
-;rcx is the loop counter
-;rdx is intermediate translator
-;rdi is pointer to beginning of input string
-;====================================================
 
 mov rcx,0
 mov rdx,0 ;clear the high bits of rdx
@@ -117,7 +111,8 @@ storeStringToMalloc:
 ;to rax (;ELEMENT ADDED). Otherwise, it is assumed
 ;the incoming character is an operator and moves it
 ;to the storeOp loop. The string at rax is then
-;pushed on to the stack for evaluation.
+;pushed on to the stack for evaluation and leaves the
+;loop by jumping to allPopped.
 ;====================================================
 ;rcx is the loop counter
 ;rsi is a counter separate from rcx so the system 
@@ -172,7 +167,9 @@ popTheRest:
 ;====================================================
 ;Printing the postfix array can be done here.
 ;The postfix array goes through the evaluate loop
-;to evaluate the desired output.
+;to evaluate the desired output. Integers are handled
+;by subtraction of 0x30 and operators are handled
+;separately in the useOp loop.
 ;====================================================
 ;rax is pointer to second string (postfix)
 ;r11 is string size
@@ -208,7 +205,7 @@ backToCheckSize:
 
 
 ;====================================================
-;Operator evaluation (foundOp loop)
+;Operator evaluation (useOp loop)
 ;====================================================
 ;When an operator is found on the stack, it is used
 ;on the two following integers on the stack.
@@ -273,7 +270,7 @@ subtraction:
 ;----------------------------------------------------
 ;We arrive here when the operator is greater than 42,
 ;or 0x2a, or '*', because '+' and '-' are both larger
-;values.
+;values ('+' == 43, '-' == 45).
 ;----------------------------------------------------
 incomingIsMult:
 	mov rdi,QWORD[rsp]
