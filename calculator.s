@@ -12,15 +12,28 @@ extern larray_print
 
 
 
+;*************************************************************************
+;*************************************************************************
+;WE ASSUME VALID INPUTS ARE PASSED--ERROR HANDLING RETURNS INVALID VALUES*
+;*************************************************************************
+;*************************************************************************
+
+
+
 ;====================================================
 ;Quick chart for ascii/decimal/hex conversion
 ;====================================================
-;48 ~ 57 is 0 ~ 9 is 0x30 ~ 0x39
-;40 ( 0x28
-;41 ) 0x29
-;42 * 0x2a
-;43 + 0x2b
-;45 - 0x2d
+;48 ~ 57 		'0' ~ '9' 			0x30 ~ 0x39
+;----------------------------------------------------
+;40 			'(' 				0x28
+;----------------------------------------------------
+;41 			')' 				0x29
+;----------------------------------------------------
+;42 			'*' 				0x2a
+;----------------------------------------------------
+;43 			'+' 				0x2b
+;----------------------------------------------------
+;45 			'-' 				0x2d
 ;****************************************************
 
 
@@ -46,10 +59,15 @@ mov r11,rcx ;r11 is number of characters
 ;====================================================
 ;malloc twice for storage (r9 & rax)
 ;====================================================
+;Creates two mallocs for storing strings. r9 for the
+;first string and rax for the second string. r9 will
+;store the input expression as given and rax will
+;store the postfix version on the input.
+;====================================================
 ;r9 is pointer to first string
 ;rax is pointer to second string
 ;r11 is character count
-;2 size r11 mallocs generated
+;====================================================
 
 push r11
 
@@ -75,6 +93,7 @@ pop rdi
 ;rcx is the loop counter
 ;rdx is intermediate translator
 ;rdi is pointer to beginning of input string
+;====================================================
 
 mov rcx,0
 mov rdx,0 ;clear the high bits of rdx
@@ -91,17 +110,29 @@ storeStringToMalloc:
 
 
 ;====================================================
-;Rearranges values from infix to postfix (rax head)
+;Iterate the string
+;====================================================
+;Looks at the characters of the unaltered stored
+;string. If the value is '0' ~ '9', then it is stored
+;to rax (;ELEMENT ADDED). Otherwise, it is assumed
+;the incoming character is an operator and moves it
+;to the storeOp loop. The string at rax is then
+;pushed on to the stack for evaluation.
 ;====================================================
 ;rcx is the loop counter
-;rsi is a counter separate from rcx so the system increments correctly
-;	when an operator stores a value into rax string
-;	(when loop goes into storeOp, rsi doesn't NEED to increment,
-;	only when the stack is popped and data is stored to rax str)
-;r10 assists with knowing where rsp began; we need this for:
-;	always pushing operator when stack is blank
-;	making sure to pop all the non-popped operators
-;rdx is intermediate translator holding characters of input string
+;rsi is a counter separate from rcx so the system 
+;	increments correctly when an operator stores a 
+;	value into rax string (when loop goes into 
+;	storeOp, rsi doesn't NEED to increment, only 
+;	when the stack is popped and data is stored to 
+;	rax str)
+;r10 assists with knowing where rsp began; we need 
+;	this for: always pushing operator when stack is 
+;	blank and making sure to pop all the non-popped 
+;	operators
+;rdx is intermediate translator holding characters 
+;	of input string
+;====================================================
 
 mov rsi,0
 mov rcx,0
@@ -137,10 +168,15 @@ popTheRest:
 
 
 ;====================================================
-;Printing and exit statement
+;Printing and evaluation
+;====================================================
+;Printing the postfix array can be done here.
+;The postfix array goes through the evaluate loop
+;to evaluate the desired output.
 ;====================================================
 ;rax is pointer to second string (postfix)
 ;r11 is string size
+;====================================================
 
 allPopped:
 
@@ -153,7 +189,7 @@ evaluate:
 	mov rsi,[rax + rcx * 8]
 	add rcx,1
 	
-	cmp rsi,0x30
+	cmp rsi,'0'
 	jl useOp
 	
 	sub rsi,0x30
@@ -172,16 +208,25 @@ backToCheckSize:
 
 
 ;====================================================
-;Operator evaluation (useOp loop)
+;Operator evaluation (foundOp loop)
 ;====================================================
+;When an operator is found on the stack, it is used
+;on the two following integers on the stack.
+;This is guarenteed due to the nature of postfix.
+;====================================================
+;rsi is the current element on the stack
+;rdx is scratch register holding no important value
+;	used for popping
+;====================================================
+
 useOp:
-	cmp rsi,0x2a
+	cmp rsi,'*'
 	je multiply
 	
-	cmp rsi,0x2b
+	cmp rsi,'+'
 	je addition
 	
-	cmp rsi,0x2d
+	cmp rsi,'-'
 	je subtraction
 	
 	jmp invalidOp
@@ -213,11 +258,23 @@ subtraction:
 ;====================================================
 ;Operator storing order (storeOp loop)
 ;====================================================
+;This loop is reached when the input string's char
+;is below 48, or 0x30, or int 0. All the operators
+;are located on those values (see Quick chart).
+;Instructions follow the 1~8 guideline located in
+;the readme file.
+;====================================================
 ;rdi is scratch register holding no important value 
 ;	(string has already been copied)
-;rdx is intermediate translator holding characters of input string
+;rdx is intermediate translator holding characters 
+;	of input string
+;====================================================
 
-
+;----------------------------------------------------
+;We arrive here when the operator is greater than 42,
+;or 0x2a, or '*', because '+' and '-' are both larger
+;values.
+;----------------------------------------------------
 incomingIsMult:
 	mov rdi,QWORD[rsp]
 	cmp rdx,rdi
@@ -231,7 +288,13 @@ incomingIsAddOrSub:
 	jge popThenPush
 	
 	jmp pushOp
-	
+;----------------------------------------------------
+
+;----------------------------------------------------
+;According to the guidelines in readme, this is how
+;each operator is handled in order to guarentee the
+;evaluation loop will compute in the correct order.
+;----------------------------------------------------
 pushOp:
 	push rdx
 	jmp backFromHandleOp
@@ -251,10 +314,11 @@ closeParenOp:
 	mov QWORD[rax + rsi * 8], rdi
 	add rsi,1
 	pop rdi
-	cmp rdi,0x28
+	cmp rdi,'('
 	jne popThemAll
 	
 	jmp backFromHandleOp
+;----------------------------------------------------
 	
 storeOp:
 	;no operators in stack (pointer location)
@@ -263,31 +327,31 @@ storeOp:
 	
 	;( operator on top (rsp value)
 	mov r8,QWORD[rsp]
-	cmp r8,0x28
+	cmp r8,'('
 	je pushOp
 	
 	;current operator is (
-	cmp rdx,0x28
+	cmp rdx,'('
 	je pushOp
 	
 	;current operator is )
-	cmp rdx,0x29
+	cmp rdx,')'
 	je closeParenOp
 	
 	;current operator is *
-	cmp rdx,0x2b
+	cmp rdx,'+'
 	jl incomingIsMult
 	
 	;current operator is + or -
-	cmp rdx,0x2b
+	cmp rdx,'+'
 	jge incomingIsAddOrSub
 	
 	jmp invalidOp
 	
 invalidInt:
-	mov rdx,0x30
+	mov rdx,'0'
 	
 invalidOp:
-	mov rdx,0x2a
+	mov rdx,'*'
 ;****************************************************
 
