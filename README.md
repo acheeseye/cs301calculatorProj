@@ -3,7 +3,7 @@
 ## Description: 	
 A calculator program that takes an infix expression and calculates the result by rearranging expression into postfix.
 
-Rules followed:
+## Rules followed:
 1. Print operands as they arrive.
 2. If the top of the stack is empty or occupied by operator '(' then push onto stack
 3. If incoming operator is '(' then push onto stack.
@@ -25,6 +25,6 @@ Rules followed:
 	- SOLVED: larray_print should only print 10
 - (10/03/2017)JH
 
-Sources:
+## Sources:
 - [Guidelines followed](http://csis.pace.edu/~wolf/CS122/infix-postfix.htm)
 - [How to evaluate the postfix](http://scriptasylum.com/tutorials/infix_postfix/algorithms/postfix-evaluation/)
