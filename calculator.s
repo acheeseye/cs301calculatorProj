@@ -4,7 +4,8 @@
 ;Rough draft
 ;Due: 10/04/2017
 
-
+push rbx
+mov rbx,0
 
 extern getchar
 extern malloc
@@ -101,7 +102,9 @@ storeStringToMalloc:
 	jl storeStringToMalloc
 ;****************************************************
 	
-
+;mov rdi,r9
+;mov rsi,r11
+;call larray_print
 
 ;====================================================
 ;Iterate the string
@@ -144,6 +147,7 @@ rearrange:
 	add rsi,1
 	
 backFromHandleOp:
+
 	add rcx,1
 	cmp rcx,r11
 	jl rearrange
@@ -179,7 +183,10 @@ allPopped:
 
 ;mov rdi,rax
 ;mov rsi,r11
+;sub rsi,rbx
 ;call larray_print
+
+sub r11,rbx
 
 mov rcx,0
 evaluate:
@@ -197,6 +204,7 @@ backToCheckSize:
 	jl evaluate
 	
 	pop rax
+	pop rbx
 	ret
 ;****************************************************
 ;*******************End of system********************
@@ -304,7 +312,8 @@ popThenPush:
 	jmp backFromHandleOp
 	
 closeParenOp:
-	sub r11,2
+	;sub r11,2
+	add rbx,2
 	pop rdi
 	
 	popThemAll:
