@@ -26,6 +26,11 @@ A calculator program that takes an infix expression and calculates the result by
 - Updated constant hex values to characters represented
 - (10/12/2017 JH)
 
+## v2.0:
+- Resolved the issue of using parenthese
+- Attempting to implement multi-digited input feature
+- (10/15/2017 JH)
+
 ## Sources:
 - [Guidelines followed](http://csis.pace.edu/~wolf/CS122/infix-postfix.htm)
 - [How to evaluate the postfix](http://scriptasylum.com/tutorials/infix_postfix/algorithms/postfix-evaluation/)
