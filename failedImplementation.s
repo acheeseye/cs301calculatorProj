@@ -50,8 +50,8 @@ push r14
 ; rbx holds the length of the string
 mov rdi,QWORD[rdi]
 mov r15,rdi
-sub	rcx, rcx
-sub	al, al
+mov rcx,0
+mov rax,0
 not	rcx
 cld
 repne scasb
@@ -76,8 +76,10 @@ string_to_multi_digit:
 	jge end_multi_digit_conversion
 	
 	; Put the next character of the initial input into rax
-	mov rax,0 ; zero out high bits
+	mov rax,0
 	mov al,BYTE[r15+rdx]
+	;shl rax,56
+	;shr rax,56
 	add rdx,1
 	
 	; If (previous_number == the intial value) insert rax as first element
@@ -150,16 +152,23 @@ end_multi_digit_conversion:
 	add rcx,1
 	mov rbx,rcx
 	; For now print contents of r14
-	mov rdi,r14
-	mov rsi,rbx
-	call larray_print
+	;mov rdi,r14
+	;mov rsi,rbx
+	;call larray_print
 
-mov rdi,rbx
-call malloc  ; rax holds string for postfix
-mov r9,r14   ; r9 holds string in infix notation
-mov r11,rbx  ; r11 is the length of r9 and rax
-
-; Restore preserved registers
+mov rcx,0
+storeToStack:
+	mov rax,QWORD[r14 + rcx * 8]
+	add rcx,1
+	push rax
+	cmp rcx,rbx
+	jl storeToStack
+	
+;mov rdi,rbx
+;call malloc  ; rax holds string for postfix
+;mov r9,rax   ; r9 holds string in infix notation
+;mov r11,rbx  ; r11 is the length of r9 and rax
+	
 pop r14
 pop r15
 
@@ -181,23 +190,33 @@ pop r15
 ;	storeOp, rsi doesn't NEED to increment, only 
 ;	when the stack is popped and data is stored to 
 ;	rax str)
-;r10 assists with knowing where rsp began; we need 
+;r8 assists with knowing where rsp began; we need 
 ;	this for: always pushing operator when stack is 
 ;	blank and making sure to pop all the non-popped 
 ;	operators
 ;rdx is intermediate translator holding characters 
 ;	of input string
+;rbx is the size of the reduced string considering
+;	multi-digits
 ;====================================================
 
 mov rsi,0
 mov rcx,0
-mov r10,rsp
+mov r8,rsp
 
 rearrange:
-	mov rdx,QWORD[r9 + rcx * 8]
-	cmp rdx,0x30
-	jl storeOp
-	cmp rdx,0x39
+	pop rdx
+	;mov rdx,QWORD[r9 + rcx * 8]
+	cmp rdx,'('
+	je checkIfOpenOp
+	cmp rdx,')'
+	je checkIfCloseOp
+	cmp rdx,'*'
+	je checkIfOp
+	cmp rdx,'+'
+	je checkIfOp
+	cmp rdx,'-'
+	je checkIfOp
 	jg invalidInt
 	
 	mov QWORD[rax +  rsi * 8],rdx ;ELEMENT ADDED
@@ -210,14 +229,14 @@ backFromHandleOp:
 	jl rearrange
 	
 popTheRest:
-	cmp r10,rsp
+	cmp r8,rsp
 	je allPopped
 	
 	pop rdi
 	mov QWORD[rax + rsi * 8], rdi
 	add rsi,1
 	
-	cmp r10,rsp
+	cmp r8,rsp
 	jg popTheRest
 ;****************************************************
 
@@ -392,7 +411,7 @@ closeParenOp:
 	
 storeOp:
 	;no operators in stack (pointer location)
-	cmp rsp,r10
+	cmp rsp,r8
 	je pushOp
 	
 	;( operator on top (rsp value)
@@ -423,6 +442,8 @@ invalidInt:
 	
 invalidOp:
 	mov rdx,'*'
+
+ret
 ;****************************************************
 
 section .data
