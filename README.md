@@ -11,7 +11,7 @@ A calculator program that takes an infix expression and calculates the result by
 5. If incoming operator has higher precedence than the operator at the top of the stack, push the incoming operator.
 6. If incoming operator has equal precedence with the operator at the top of the stack, pop stack to print then push incoming operator (association is left to right).
 7. If incoming operator has lower precedence than the operator at the top of the stack, pop stack to print then push incoming operator.
-8. Pop any remaining operators at the end in normal popping order.
+8. Pop any remaining operators at the end in normal popping order.  
 (Refer to Sources for source)
 
 ### Additional Guidelines for correct output:
