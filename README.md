@@ -5,9 +5,9 @@ A calculator program that takes an infix expression and calculates the result by
 
 ## Guidelines followed:
 1. Print operands as they arrive.
-2. If the top of the stack is empty or occupied by operator '(' then push onto stack
-3. If incoming operator is '(' then push onto stack.
-4. If incoming operator is ')' then pop stack until operator '(' is found. Exclude printing '(' and ')'.
+2. If the top of the stack is empty or occupied by operator `(` then push onto stack
+3. If incoming operator is `(` then push onto stack.
+4. If incoming operator is `)` then pop stack until operator `(` is found. Exclude printing `(` and `)`.
 5. If incoming operator has higher precedence than the operator at the top of the stack, push the incoming operator.
 6. If incoming operator has equal precedence with the operator at the top of the stack, pop stack to print then push incoming operator (association is left to right).
 7. If incoming operator has lower precedence than the operator at the top of the stack, pop stack to print then push incoming operator.
