@@ -31,14 +31,14 @@ A calculator program that takes an infix expression and calculates the result by
 - (10/12/2017 JH)
 
 ## v2.0:
-- Resolved the issue of using parenthese
+- Resolved the issue of using parentheses
 - Attempting to implement multi-digited input feature
 - (10/15/2017 JH)
 
 ## v3.0:
 - Sucessful implementation of multi-digited input feature
 	- STILLNEEDS: code correction for expressions beginning with parentheses
-- Resolved the issue of incorrect outputs due to negative values paired with '-' operator
+- Resolved the issue of incorrect outputs due to negative values paired with `-` operator
 - (10/17/2017 JH)
 
 ## v3.1:
