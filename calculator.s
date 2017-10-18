@@ -237,12 +237,10 @@ push r12
 push r13
 
 mov r13,0
-mov rax,rdi
 mov r12,rdi
 mov rsi,0
 mov rcx,0
 mov r10,rsp
-;mov r10,rsp
 
 rearrange:
 	mov rax,rsp
