@@ -10,37 +10,27 @@ mov rbx,0
 extern getchar
 extern malloc
 extern free
-extern larray_print
 
-
-
-;*************************************************************************
 ;*************************************************************************
 ;WE ASSUME VALID INPUTS ARE PASSED--ERROR HANDLING RETURNS INVALID VALUES*
 ;*************************************************************************
+;INTEGERS 0x7FFFFFFFFFFFFFFB ~ 0x7FFFFFFFFFFFFFFF ARE USED FOR OPERATORS**
 ;*************************************************************************
-;INTEGERS AVAILABLE FOR COMPUTATION: 0xFFFFFFFF ~ 0x7FFFFFFA**************
-;INTEGERS 0x7FFFFFFB ~ 0x7FFFFFFF ARE USED FOR OPERATORS******************
-;*************************************************************************
-;*************************************************************************
-
-
 
 ;=======================================================================
 ;Quick chart for ascii/decimal/hex/our-version conversion (respectively)
 ;=======================================================================
 ;48 ~ 57 		'0' ~ '9' 			0x30 ~ 0x39	
 ;-----------------------------------------------------------------------
-;40 			'(' 				0x28			0x7FFFFFFB
+;40 			'(' 				0x28			0x7FFFFFFFFFFFFFFB
 ;-----------------------------------------------------------------------
-;41 			')' 				0x29			0x7FFFFFFC
+;41 			')' 				0x29			0x7FFFFFFFFFFFFFFC
 ;-----------------------------------------------------------------------
-;42 			'*' 				0x2a			0x7FFFFFFD
+;42 			'*' 				0x2a			0x7FFFFFFFFFFFFFFD
 ;-----------------------------------------------------------------------
-;43 			'+' 				0x2b			0x7FFFFFFE
+;43 			'+' 				0x2b			0x7FFFFFFFFFFFFFFE
 ;-----------------------------------------------------------------------
-;45 			'-' 				0x2d			0x7FFFFFFF
-;***********************************************************************
+;45 			'-' 				0x2d			0x7FFFFFFFFFFFFFFF
 ;***********************************************************************
 
 ; =============================================================================
@@ -65,14 +55,16 @@ not	rcx
 dec	rcx
 mov rbx,rcx
 
-; Allocate bytes equal to the length of the string
+; Allocate bytes equal to the length of the string * 8
 ; r14 holds the values of the initial string with multi digit values
 ; Since there can be zero multi digit values, r14 needs to be as long as the initial string
 mov rdi,rbx
+imul rdi,8
 call malloc
 push rax
 
 mov rdi,rbx
+imul rdi,8
 call malloc
 push rax
 
@@ -91,12 +83,10 @@ string_to_multi_digit:
 	; Put the next character of the initial input into rax
 	mov rax,0
 	mov al,BYTE[r15+rdx]
-	;shl rax,56
-	;shr rax,56
 	add rdx,1
 	
-	; If (previous_number == the intial value) insert rax as first element
-	cmp QWORD[previous_number],0xFfffFfffFfffFfff
+	; If first loop, insert rax as first element
+	cmp rdx,1
 	je is_first_element
 	
 	; Determine if rax is a digit
@@ -108,27 +98,17 @@ string_to_multi_digit:
 	
 	; if rax is not a digit add it to array and loop again
 	is_not_digit:
-		add rcx,1
 		cmp rax,'('
-		je convertNonMinus
+		cmove rax,[OPEN_PAREN]
 		cmp rax,')'
-		je convertNonMinus
+		cmove rax,[CLOSED_PAREN]
 		cmp rax,'*'
-		je convertNonMinus
+		cmove rax,[MUL_OP]
 		cmp rax,'+'
-		je convertNonMinus
+		cmove rax,[ADD_OP]
 		cmp rax,'-'
-		je convert
-		
-		convertNonMinus:
-			add rax,2147483603
-			jmp done
-		
-		convert:
-			add rax,2147483602
-			
-		done:
-		
+		cmove rax,[SUB_OP]
+		add rcx,1
 		mov QWORD[r14+rcx*8],rax
 		mov BYTE[previous_is_number],0
 		jmp string_to_multi_digit
@@ -173,8 +153,9 @@ string_to_multi_digit:
 			mov BYTE[previous_is_number],1
 			jmp string_to_multi_digit
 		; If the first element is not a digit, set previous_is_number to false
-		; Then add the operarto to the array
+		; Also, the operator must be '(' to be valid input.
 		first_is_operator:
+			mov rax,[OPEN_PAREN]
 			mov QWORD[r14+rcx*8],rax
 			mov BYTE[previous_is_number],0
 			jmp string_to_multi_digit
@@ -184,10 +165,6 @@ string_to_multi_digit:
 end_multi_digit_conversion:
 	add rcx,1
 	mov rbx,rcx
-	; For now print contents of r14
-	;mov rdi,r14
-	;mov rsi,rbx
-	;call larray_print
 
 ;since we are using stack space, return these
 ;before pushing the values
@@ -220,7 +197,7 @@ mov r11,rbx  ; r11 is the length of the condensed string
 ;rsi is a counter separate from rcx so the system 
 ;	increments correctly when an operator stores a 
 ;	value into rax string (when loop goes into 
-;	storeOp, rsi doesn't NEED to increment, only 
+;	storeOp, rsi doesnt NEED to increment, only 
 ;	when the stack is popped and data is stored to 
 ;	rax str)
 ;r8 assists with knowing where rsp began; we need 
@@ -245,10 +222,10 @@ mov r10,rsp
 rearrange:
 	mov rax,rsp
 	mov rdx,QWORD[r12 + rcx * 8]
-	cmp rdx,0x7FFFFFFA
-	jg storeOp
+	cmp rdx,QWORD[OPEN_PAREN] ; OPEN_PAREN is the smallest operator constant
+	jge storeOp
 	
-	mov QWORD[r9 +  rsi * 8],rdx ;ELEMENT ADDED
+	mov QWORD[r9 +  rsi * 8],rdx ; ELEMENT ADDED
 	add rsi,1
 	
 backFromHandleOp:
@@ -270,16 +247,11 @@ popTheRest:
 	jg popTheRest
 ;****************************************************
 
-
-
 ;====================================================
-;Printing and evaluation
+;Evaluation
 ;====================================================
-;Printing the postfix array can be done here.
 ;The postfix array goes through the evaluate loop
-;to evaluate the desired output. Integers are handled
-;by subtraction of 0x30 and operators are handled
-;separately in the useOp loop.
+;to evaluate the desired output.
 ;====================================================
 ;rax is pointer to second string (postfix)
 ;r11 is string size
@@ -292,31 +264,19 @@ sub r11,r13
 pop r13
 pop r12 ;return r12
 
-;mov rdi,rax
-;mov rsi,r11
-;sub rsi,rbx
-;call larray_print
-
 mov rcx,0
 evaluate:
 	mov rsi,[r9 + rcx * 8]
 	add rcx,1
 	
-	cmp rsi, 0x7FFFFFFA
-	jg useOp
+	cmp rsi,QWORD[OPEN_PAREN]
+	jge useOp
 	
 	push rsi
 	
 backToCheckSize:
 	cmp rcx,r11
 	jl evaluate
-	
-	; Free rax and r9
-	;push r9
-	;mov rdi,r12
-	;call free
-	;pop rdi
-	;call free
 
 pop rax
 mov rcx,0
@@ -328,6 +288,10 @@ popStuff:
 
 pop rbx
 	
+	push rax
+	mov rdi,r9
+	call free
+	pop rax
 	ret
 ;****************************************************
 ;*******************End of system********************
@@ -348,13 +312,13 @@ pop rbx
 ;====================================================
 
 useOp:
-	cmp rsi,0x7FFFFFFD
+	cmp rsi,QWORD[MUL_OP]
 	je multiply
 	
-	cmp rsi,0x7FFFFFFE
+	cmp rsi,QWORD[ADD_OP]
 	je addition
 	
-	cmp rsi,0x7FFFFFFF
+	cmp rsi,QWORD[SUB_OP]
 	je subtraction
 	
 	jmp invalidOp
@@ -386,23 +350,11 @@ subtraction:
 ;====================================================
 ;Operator storing order (storeOp loop)
 ;====================================================
-;This loop is reached when the input string's char
-;is below 48, or 0x30, or int 0. All the operators
-;are located on those values (see Quick chart).
-;Instructions follow the 1~8 guideline located in
-;the readme file.
-;====================================================
 ;rdi is scratch register holding no important value 
 ;	(string has already been copied)
 ;rdx is intermediate translator holding characters 
 ;	of input string
 ;====================================================
-
-;----------------------------------------------------
-;We arrive here when the operator is greater than 42,
-;or 0x2a, or '*', because '+' and '-' are both larger
-;values ('+' == 43, '-' == 45).
-;----------------------------------------------------
 incomingIsMult:
 	mov rdi,QWORD[rsp]
 	cmp rdx,rdi
@@ -461,7 +413,7 @@ closeParenOp:
 	mov QWORD[r9 + rsi * 8], rdi
 	add rsi,1
 	pop rdi
-	cmp rdi,0x7FFFFFFB
+	cmp rdi,QWORD[OPEN_PAREN]
 	jne popThemAll
 	
 	jmp backFromHandleOp
@@ -474,27 +426,27 @@ storeOp:
 	
 	;( operator on top (rsp value)
 	mov r8,QWORD[rsp]
-	cmp r8,0x7FFFFFFB
+	cmp r8,QWORD[OPEN_PAREN]
 	je pushOp
 	
 	;current operator is (
-	cmp rdx,0x7FFFFFFB
+	cmp rdx,QWORD[OPEN_PAREN]
 	je pushOpOpen
 	
 	;current operator is )
-	cmp rdx,0x7FFFFFFC
+	cmp rdx,QWORD[CLOSED_PAREN]
 	je closeParenOp
 	
 	;current operator is *
-	cmp rdx,0x7FFFFFFD
+	cmp rdx,QWORD[MUL_OP]
 	je incomingIsMult
 	
 	;current operator is +
-	cmp rdx,0x7FFFFFFE
+	cmp rdx,QWORD[ADD_OP]
 	je incomingIsAdd
 	
 	;current operator is -
-	cmp rdx,0x7FFFFFFF
+	cmp rdx,QWORD[SUB_OP]
 	je incomingIsSub
 	
 	jmp invalidOp
@@ -509,10 +461,24 @@ ret
 ;****************************************************
 
 section .data
-
+;***********************************************************************************
+; The five largest signed 64 bit values (0x7fffFfffFfffFffB to 0x7fffFfffFfffFffF)
+; are reserved as constants for operators.
+;***********************************************************************************
+OPEN_PAREN:
+	dq 0x7fffFfffFfffFffB
+CLOSED_PAREN:
+	dq 0x7fffFfffFfffFffC
+MUL_OP:
+	dq 0x7fffFfffFfffFffD
+ADD_OP:
+	dq 0x7fffFfffFfffFffE
+SUB_OP:
+	dq 0x7fffFfffFfffFffF
+;***********************************************************************
 ; Holds the previous number in case it is multi digit
 previous_number:
-	dq 0xFfffFfffFfffFfff
+	dq 0
 	
 ; Flag for whether the last character was a number or not
 ; 0 is false
