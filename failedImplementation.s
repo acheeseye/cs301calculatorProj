@@ -245,6 +245,7 @@ mov r10,rsp
 ;mov r10,rsp
 
 rearrange:
+	mov rax,rsp
 	mov rdx,QWORD[r12 + rcx * 8]
 	cmp rdx,0x7FFFFFFA
 	jg storeOp
@@ -259,6 +260,7 @@ backFromHandleOp:
 	jl rearrange
 	
 popTheRest:
+	mov rax,rsp	
 	cmp r10,rsp
 	je allPopped
 	
@@ -435,7 +437,6 @@ popThenPush:
 	jmp backFromHandleOp
 
 pushOpOpen:
-	sub r10,8
 	push rdx
 	jmp backFromHandleOp	
 	
@@ -444,6 +445,7 @@ closeParenOp:
 	pop rdi
 	
 	popThemAll:
+	mov rax,rsp
 	mov QWORD[r9 + rsi * 8], rdi
 	add rsi,1
 	pop rdi
