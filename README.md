@@ -3,7 +3,7 @@
 ## Description: 	
 A calculator program that takes an infix expression and calculates the result by rearranging expression into postfix.
 
-## Rules followed:
+## Guidelines followed:
 1. Print operands as they arrive.
 2. If the top of the stack is empty or occupied by operator '(' then push onto stack
 3. If incoming operator is '(' then push onto stack.
@@ -12,6 +12,10 @@ A calculator program that takes an infix expression and calculates the result by
 6. If incoming operator has equal precedence with the operator at the top of the stack, pop stack to print then push incoming operator (association is left to right).
 7. If incoming operator has lower precedence than the operator at the top of the stack, pop stack to print then push incoming operator.
 8. Pop any remaining operators at the end in normal popping order.
+(Refer to Sources for source)
+
+### Additional Guidelines for correct output:
+9. If incoming operator is '-', make the next integer negative and the incoming operator '+'. This makes sure that a negative sign does not carry through to other operations.
 
 ## v0.0:
 - Currently supports infix translation into postfix for '+' '-' and '\*' operators
@@ -30,6 +34,15 @@ A calculator program that takes an infix expression and calculates the result by
 - Resolved the issue of using parenthese
 - Attempting to implement multi-digited input feature
 - (10/15/2017 JH)
+
+## v3.0:
+- Sucessful implementation of multi-digited input feature
+	- STILLNEEDS: code correction for expressions beginning with parentheses
+- Resolved the issue of incorrect outputs due to negative values paired with '-' operator
+- (10/17/2017 JH)
+
+## v3.1:
+- STILLNEED resolved?
 
 ## Sources:
 - [Guidelines followed](http://csis.pace.edu/~wolf/CS122/infix-postfix.htm)
