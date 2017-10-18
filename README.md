@@ -1,7 +1,7 @@
-# cs301calculatorProj
+# CS 301 PROJECT1: CALCULATOR PROGRAM
 
 ## Description: 	
-A calculator program that takes an infix expression and calculates the result by rearranging expression into postfix.
+A calculator program that takes an infix expression and calculates the result by rearranging expression into postfix. The system is limited to PERFECT input and only uses `+`, `-`, `*`, `(`, and `)` operators
 
 ## Guidelines followed:
 1. Print operands as they arrive.
@@ -15,11 +15,11 @@ A calculator program that takes an infix expression and calculates the result by
 (Refer to Sources for source)
 
 ### Additional Guidelines for correct output:
-9. If incoming operator is '-', make the next integer negative and the incoming operator '+'. This makes sure that a negative sign does not carry through to other operations.
+9. If incoming operator is `-`, make the next integer negative and the incoming operator `+`. This makes sure that a negative sign does not carry through to other operations.
 
 ## v0.0:
-- Currently supports infix translation into postfix for '+' '-' and '\*' operators
-- Undefined operators are set to '\*'
+- Currently supports infix translation into postfix for `+` `-` and `*` operators
+- Undefined operators are set to `*`
 - Undefined characters (<0x30 or >0x39) are set to 0x30
 - 1+2\*(4+3\*2-1) SOMEHOW PRINTS arr[5] TWICE??? The values store are correct, but somehow arr[5] gets included twice
 	- SOLVED: larray_print should only print 10
