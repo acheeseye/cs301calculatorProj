@@ -1,7 +1,10 @@
 # CS 301 PROJECT1: CALCULATOR PROGRAM
 
 ## Description: 	
-A calculator program that takes an infix expression and calculates the result by rearranging expression into postfix. The system is limited to PERFECT input and only uses `+`, `-`, `*`, `(`, and `)` operators
+- A calculator program that takes an infix expression and calculates the result by rearranging the expression into postfix. 
+- The system is limited to PERFECT input and only uses `+`, `-`, `*`, `(`, and `)` operators.  
+- The range of possible in/outputs are limited to 32 bit integers, excluding 0x7FFFFFFB ~ 0x7FFFFFFF as they are used for the five operators.  
+- There are likely unconsidered cases which will result in a crash or incorrect output.
 
 ## Guidelines followed:
 1. Print operands as they arrive.
