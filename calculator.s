@@ -9,6 +9,7 @@ mov rbx,0
 
 extern getchar
 extern malloc
+extern free
 extern larray_print
 
 
@@ -18,93 +19,191 @@ extern larray_print
 ;WE ASSUME VALID INPUTS ARE PASSED--ERROR HANDLING RETURNS INVALID VALUES*
 ;*************************************************************************
 ;*************************************************************************
+;INTEGERS AVAILABLE FOR COMPUTATION: 0xFFFFFFFF ~ 0x7FFFFFFA**************
+;INTEGERS 0x7FFFFFFB ~ 0x7FFFFFFF ARE USED FOR OPERATORS******************
+;*************************************************************************
+;*************************************************************************
 
 
 
-;====================================================
-;Quick chart for ascii/decimal/hex conversion
-;====================================================
-;48 ~ 57 		'0' ~ '9' 			0x30 ~ 0x39
-;----------------------------------------------------
-;40 			'(' 				0x28
-;----------------------------------------------------
-;41 			')' 				0x29
-;----------------------------------------------------
-;42 			'*' 				0x2a
-;----------------------------------------------------
-;43 			'+' 				0x2b
-;----------------------------------------------------
-;45 			'-' 				0x2d
-;****************************************************
+;=======================================================================
+;Quick chart for ascii/decimal/hex/our-version conversion (respectively)
+;=======================================================================
+;48 ~ 57 		'0' ~ '9' 			0x30 ~ 0x39	
+;-----------------------------------------------------------------------
+;40 			'(' 				0x28			0x7FFFFFFB
+;-----------------------------------------------------------------------
+;41 			')' 				0x29			0x7FFFFFFC
+;-----------------------------------------------------------------------
+;42 			'*' 				0x2a			0x7FFFFFFD
+;-----------------------------------------------------------------------
+;43 			'+' 				0x2b			0x7FFFFFFE
+;-----------------------------------------------------------------------
+;45 			'-' 				0x2d			0x7FFFFFFF
+;***********************************************************************
+;***********************************************************************
 
+; =============================================================================
+; * Take the input and turn sequential numeric values into multi digit values *
+; =============================================================================
 
+; push preserved registers for later use
+push r15
+push r14
 
-;====================================================
-;Calculates the number of characters (MAGIC)
-;====================================================
+; String magic to find the length of the input string
+; r15 holds the initial string
+; rbx holds the length of the string
 mov rdi,QWORD[rdi]
-push rdi
-
+mov r15,rdi
 mov rcx,0
 mov rax,0
-not rcx
+not	rcx
 cld
 repne scasb
-not rcx
-dec rcx
-mov r11,rcx ;r11 is number of characters
-;****************************************************
+not	rcx
+dec	rcx
+mov rbx,rcx
 
-
-
-;====================================================
-;malloc twice for storage and store first string
-;====================================================
-;Creates two mallocs for storing strings. r9 for the
-;first string and rax for the second string. r9 will
-;store the input expression as given and rax will
-;store the postfix version on the input.
-;====================================================
-;r9 is pointer to first string
-;rax is pointer to second string
-;r11 is character count
-
-;rcx is the loop counter
-;rdx is intermediate translator
-;rdi is pointer to beginning of input string
-;====================================================
-
-push r11
-
-mov rdi,r11 ;rdi is parameter for malloc 
+; Allocate bytes equal to the length of the string
+; r14 holds the values of the initial string with multi digit values
+; Since there can be zero multi digit values, r14 needs to be as long as the initial string
+mov rdi,rbx
 call malloc
-
 push rax
-pop r11
-push r11
 
-mov rdi,r11
-call malloc ;rax is pointer to second string of same size
+mov rdi,rbx
+call malloc
+push rax
 
-pop r9 ;pointer to first string
-pop r11
-pop rdi
+pop r14 ; empty for storing condensed version
+pop r9	; empty for storing postfix
+
+; Loop that takes the string and combines sequential digits into 1 number
+mov rdx,0 ; loop counter
+mov rcx,0 ; index of r14
+string_to_multi_digit:
+
+	; If (loop counter >= length of string) allocate the final string
+	cmp rdx,rbx
+	jge end_multi_digit_conversion
+	
+	; Put the next character of the initial input into rax
+	mov rax,0
+	mov al,BYTE[r15+rdx]
+	;shl rax,56
+	;shr rax,56
+	add rdx,1
+	
+	; If (previous_number == the intial value) insert rax as first element
+	cmp QWORD[previous_number],0xFfffFfffFfffFfff
+	je is_first_element
+	
+	; Determine if rax is a digit
+	cmp rax,'0'
+	jl is_not_digit
+	cmp rax,'9'
+	jg is_not_digit
+	jmp is_digit
+	
+	; if rax is not a digit add it to array and loop again
+	is_not_digit:
+		add rcx,1
+		cmp rax,'('
+		je convertNonMinus
+		cmp rax,')'
+		je convertNonMinus
+		cmp rax,'*'
+		je convertNonMinus
+		cmp rax,'+'
+		je convertNonMinus
+		cmp rax,'-'
+		je convert
+		
+		convertNonMinus:
+			add rax,2147483603
+			jmp done
+		
+		convert:
+			add rax,2147483602
+			
+		done:
+		
+		mov QWORD[r14+rcx*8],rax
+		mov BYTE[previous_is_number],0
+		jmp string_to_multi_digit
+			
+	; if rax is a digit then check if the previous character is also a digit	
+	is_digit:
+		; Convert rax to number from 0-9
+		sub rax,'0'
+		
+		; If previous is not a number, just insert the current number
+		cmp BYTE[previous_is_number],0
+		je insert_number
+		
+		; if previous character is a digit, add rax to 10*previous
+		mov rsi,QWORD[previous_number]
+		imul rsi,10
+		add rsi,rax
+		mov QWORD[r14+rcx*8],rsi
+		mov QWORD[previous_number],rsi
+		jmp string_to_multi_digit
+		
+		; if previous character is an operator, add the current number to array
+		insert_number:
+			add rcx,1
+			mov QWORD[r14+rcx*8],rax
+			mov QWORD[previous_number],rax 
+			mov BYTE[previous_is_number],1
+			jmp string_to_multi_digit
+	
+	is_first_element:
+		; if the first element is not a digit, add it to the array
+		cmp rax,'0'
+		jl first_is_operator
+		cmp rax,'9'
+		jg first_is_operator
+		
+		; If the first element is a digit, set previous_number and add to array
+		first_is_digit:
+			sub rax,'0' ; convert rax to digit from 0-9
+			mov QWORD[r14+rcx*8],rax
+			mov QWORD[previous_number],rax
+			mov BYTE[previous_is_number],1
+			jmp string_to_multi_digit
+		; If the first element is not a digit, set previous_is_number to false
+		; Then add the operarto to the array
+		first_is_operator:
+			mov QWORD[r14+rcx*8],rax
+			mov BYTE[previous_is_number],0
+			jmp string_to_multi_digit
+
+; rcx is the last index of r14
+; add 1 to rcx so that rcx is now the length of r14, then store the length in rbx
+end_multi_digit_conversion:
+	add rcx,1
+	mov rbx,rcx
+	; For now print contents of r14
+	;mov rdi,r14
+	;mov rsi,rbx
+	;call larray_print
+
+;since we are using stack space, return these
+;before pushing the values
+mov rdi,r14
+pop r14
+pop r15
 
 mov rcx,0
-mov rdx,0 ;clear the high bits of rdx
-storeStringToMalloc:
-	;check for no input
-	mov dl,BYTE[rdi]
-	mov QWORD[r9 + rcx * 8], rdx
-	add rdi,1
+storeToStack:
+	mov rax,QWORD[rdi + rcx * 8]
 	add rcx,1
-	cmp rcx,r11
-	jl storeStringToMalloc
-;****************************************************
+	push rax
+	cmp rcx,rbx
+	jl storeToStack
 	
-;mov rdi,r9
-;mov rsi,r11
-;call larray_print
+mov r11,rbx  ; r11 is the length of the condensed string
 
 ;====================================================
 ;Iterate the string
@@ -124,26 +223,34 @@ storeStringToMalloc:
 ;	storeOp, rsi doesn't NEED to increment, only 
 ;	when the stack is popped and data is stored to 
 ;	rax str)
-;r10 assists with knowing where rsp began; we need 
+;r8 assists with knowing where rsp began; we need 
 ;	this for: always pushing operator when stack is 
 ;	blank and making sure to pop all the non-popped 
 ;	operators
 ;rdx is intermediate translator holding characters 
 ;	of input string
+;rbx is the size of the reduced string considering
+;	multi-digits
 ;====================================================
 
+push r12
+push r13
+
+mov r13,0
+mov rax,rdi
+mov r12,rdi
 mov rsi,0
 mov rcx,0
 mov r10,rsp
+;mov r10,rsp
 
 rearrange:
-	mov rdx,QWORD[r9 + rcx * 8]
-	cmp rdx,0x30
-	jl storeOp
-	cmp rdx,0x39
-	jg invalidInt
+	mov rax,rsp
+	mov rdx,QWORD[r12 + rcx * 8]
+	cmp rdx,0x7FFFFFFA
+	jg storeOp
 	
-	mov QWORD[rax +  rsi * 8],rdx ;ELEMENT ADDED
+	mov QWORD[r9 +  rsi * 8],rdx ;ELEMENT ADDED
 	add rsi,1
 	
 backFromHandleOp:
@@ -153,11 +260,12 @@ backFromHandleOp:
 	jl rearrange
 	
 popTheRest:
+	mov rax,rsp	
 	cmp r10,rsp
 	je allPopped
 	
 	pop rdi
-	mov QWORD[rax + rsi * 8], rdi
+	mov QWORD[r9 + rsi * 8], rdi
 	add rsi,1
 	
 	cmp r10,rsp
@@ -181,30 +289,49 @@ popTheRest:
 
 allPopped:
 
+sub r11,r13
+
+pop r13
+pop r12 ;return r12
+
 ;mov rdi,rax
 ;mov rsi,r11
 ;sub rsi,rbx
 ;call larray_print
 
-sub r11,rbx
-
 mov rcx,0
 evaluate:
-	mov rsi,[rax + rcx * 8]
+	mov rsi,[r9 + rcx * 8]
 	add rcx,1
 	
-	cmp rsi,'0'
-	jl useOp
+	cmp rsi, 0x7FFFFFFA
+	jg useOp
 	
-	sub rsi,0x30
+	
+	
 	push rsi
 	
 backToCheckSize:
 	cmp rcx,r11
 	jl evaluate
 	
-	pop rax
-	pop rbx
+	; Free rax and r9
+	;push r9
+	;mov rdi,r12
+	;call free
+	;pop rdi
+	;call free
+
+pop rax
+mov rcx,0
+popStuff:
+	pop rdx
+	add rcx,1
+	cmp rcx,rbx
+	jl popStuff
+
+pop rbx
+	
 	ret
 ;****************************************************
 ;*******************End of system********************
@@ -225,13 +352,13 @@ backToCheckSize:
 ;====================================================
 
 useOp:
-	cmp rsi,'*'
+	cmp rsi,0x7FFFFFFD
 	je multiply
 	
-	cmp rsi,'+'
+	cmp rsi,0x7FFFFFFE
 	je addition
 	
-	cmp rsi,'-'
+	cmp rsi,0x7FFFFFFF
 	je subtraction
 	
 	jmp invalidOp
@@ -287,12 +414,26 @@ incomingIsMult:
 	
 	jmp popThenPush
 	
-incomingIsAddOrSub:
+incomingIsAdd:
 	mov rdi,QWORD[rsp]
 	cmp rdx,rdi
 	jge popThenPush
 	
 	jmp pushOp
+
+incomingIsSub:
+	sub rdx,1 ;make the minus into plus
+	push rcx
+	push r12
+	add rcx,1
+	imul rcx,8
+	add r12,rcx
+	mov rdi,[r12];make the value it is attached to negative
+	imul rdi,-1
+	mov QWORD[r12],rdi
+	pop r12
+	pop rcx
+	jmp incomingIsAdd
 ;----------------------------------------------------
 
 ;----------------------------------------------------
@@ -306,21 +447,25 @@ pushOp:
 
 popThenPush:
 	pop rdi
-	mov QWORD[rax + rsi * 8], rdi
+	mov QWORD[r9 + rsi * 8], rdi
 	push rdx
 	add rsi,1
 	jmp backFromHandleOp
+
+pushOpOpen:
+	push rdx
+	jmp backFromHandleOp	
 	
 closeParenOp:
-	;sub r11,2
-	add rbx,2
+	add r13,2
 	pop rdi
 	
 	popThemAll:
-	mov QWORD[rax + rsi * 8], rdi
+	mov rax,rsp
+	mov QWORD[r9 + rsi * 8], rdi
 	add rsi,1
 	pop rdi
-	cmp rdi,'('
+	cmp rdi,0x7FFFFFFB
 	jne popThemAll
 	
 	jmp backFromHandleOp
@@ -333,24 +478,28 @@ storeOp:
 	
 	;( operator on top (rsp value)
 	mov r8,QWORD[rsp]
-	cmp r8,'('
+	cmp r8,0x7FFFFFFB
 	je pushOp
 	
 	;current operator is (
-	cmp rdx,'('
-	je pushOp
+	cmp rdx,0x7FFFFFFB
+	je pushOpOpen
 	
 	;current operator is )
-	cmp rdx,')'
+	cmp rdx,0x7FFFFFFC
 	je closeParenOp
 	
 	;current operator is *
-	cmp rdx,'+'
-	jl incomingIsMult
+	cmp rdx,0x7FFFFFFD
+	je incomingIsMult
 	
-	;current operator is + or -
-	cmp rdx,'+'
-	jge incomingIsAddOrSub
+	;current operator is +
+	cmp rdx,0x7FFFFFFE
+	je incomingIsAdd
+	
+	;current operator is -
+	cmp rdx,0x7FFFFFFF
+	je incomingIsSub
 	
 	jmp invalidOp
 	
@@ -359,5 +508,20 @@ invalidInt:
 	
 invalidOp:
 	mov rdx,'*'
+
+ret
 ;****************************************************
+
+section .data
+
+; Holds the previous number in case it is multi digit
+previous_number:
+	dq 0xFfffFfffFfffFfff
+	
+; Flag for whether the last character was a number or not
+; 0 is false
+; 1 is true
+previous_is_number:
+	db 0
+
 
