@@ -13,29 +13,35 @@ extern free
 extern larray_print
 
 
+
 ;*************************************************************************
 ;*************************************************************************
 ;WE ASSUME VALID INPUTS ARE PASSED--ERROR HANDLING RETURNS INVALID VALUES*
 ;*************************************************************************
 ;*************************************************************************
+;INTEGERS AVAILABLE FOR COMPUTATION: 0xFFFFFFFF ~ 0x7FFFFFFA**************
+;INTEGERS 0x7FFFFFFB ~ 0x7FFFFFFF ARE USED FOR OPERATORS******************
+;*************************************************************************
+;*************************************************************************
 
 
 
-;====================================================
-;Quick chart for ascii/decimal/hex conversion
-;====================================================
-;48 ~ 57 		'0' ~ '9' 			0x30 ~ 0x39
-;----------------------------------------------------
-;40 			'(' 				0x28
-;----------------------------------------------------
-;41 			')' 				0x29
-;----------------------------------------------------
-;42 			'*' 				0x2a
-;----------------------------------------------------
-;43 			'+' 				0x2b
-;----------------------------------------------------
-;45 			'-' 				0x2d
-;****************************************************
+;=======================================================================
+;Quick chart for ascii/decimal/hex/our-version conversion (respectively)
+;=======================================================================
+;48 ~ 57 		'0' ~ '9' 			0x30 ~ 0x39	
+;-----------------------------------------------------------------------
+;40 			'(' 				0x28			0x7FFFFFFB
+;-----------------------------------------------------------------------
+;41 			')' 				0x29			0x7FFFFFFC
+;-----------------------------------------------------------------------
+;42 			'*' 				0x2a			0x7FFFFFFD
+;-----------------------------------------------------------------------
+;43 			'+' 				0x2b			0x7FFFFFFE
+;-----------------------------------------------------------------------
+;45 			'-' 				0x2d			0x7FFFFFFF
+;***********************************************************************
+;***********************************************************************
 
 ; =============================================================================
 ; * Take the input and turn sequential numeric values into multi digit values *
@@ -64,7 +70,14 @@ mov rbx,rcx
 ; Since there can be zero multi digit values, r14 needs to be as long as the initial string
 mov rdi,rbx
 call malloc
-mov r14,rax
+push rax
+
+mov rdi,rbx
+call malloc
+push rax
+
+pop r14 ; empty for storing condensed version
+pop r9	; empty for storing postfix
 
 ; Loop that takes the string and combines sequential digits into 1 number
 mov rdx,0 ; loop counter
@@ -96,6 +109,26 @@ string_to_multi_digit:
 	; if rax is not a digit add it to array and loop again
 	is_not_digit:
 		add rcx,1
+		cmp rax,'('
+		je convertNonMinus
+		cmp rax,')'
+		je convertNonMinus
+		cmp rax,'*'
+		je convertNonMinus
+		cmp rax,'+'
+		je convertNonMinus
+		cmp rax,'-'
+		je convert
+		
+		convertNonMinus:
+			add rax,2147483603
+			jmp done
+		
+		convert:
+			add rax,2147483602
+			
+		done:
+		
 		mov QWORD[r14+rcx*8],rax
 		mov BYTE[previous_is_number],0
 		jmp string_to_multi_digit
@@ -156,21 +189,21 @@ end_multi_digit_conversion:
 	;mov rsi,rbx
 	;call larray_print
 
+;since we are using stack space, return these
+;before pushing the values
+mov rdi,r14
+pop r14
+pop r15
+
 mov rcx,0
 storeToStack:
-	mov rax,QWORD[r14 + rcx * 8]
+	mov rax,QWORD[rdi + rcx * 8]
 	add rcx,1
 	push rax
 	cmp rcx,rbx
 	jl storeToStack
 	
-;mov rdi,rbx
-;call malloc  ; rax holds string for postfix
-;mov r9,rax   ; r9 holds string in infix notation
-;mov r11,rbx  ; r11 is the length of r9 and rax
-	
-pop r14
-pop r15
+mov r11,rbx  ; r11 is the length of the condensed string
 
 ;====================================================
 ;Iterate the string
@@ -200,26 +233,23 @@ pop r15
 ;	multi-digits
 ;====================================================
 
+push r12
+push r13
+
+mov r13,0
+mov rax,rdi
+mov r12,rdi
 mov rsi,0
 mov rcx,0
-mov r8,rsp
+mov r10,rsp
+;mov r10,rsp
 
 rearrange:
-	pop rdx
-	;mov rdx,QWORD[r9 + rcx * 8]
-	cmp rdx,'('
-	je checkIfOpenOp
-	cmp rdx,')'
-	je checkIfCloseOp
-	cmp rdx,'*'
-	je checkIfOp
-	cmp rdx,'+'
-	je checkIfOp
-	cmp rdx,'-'
-	je checkIfOp
-	jg invalidInt
+	mov rdx,QWORD[r12 + rcx * 8]
+	cmp rdx,0x7FFFFFFA
+	jg storeOp
 	
-	mov QWORD[rax +  rsi * 8],rdx ;ELEMENT ADDED
+	mov QWORD[r9 +  rsi * 8],rdx ;ELEMENT ADDED
 	add rsi,1
 	
 backFromHandleOp:
@@ -229,14 +259,14 @@ backFromHandleOp:
 	jl rearrange
 	
 popTheRest:
-	cmp r8,rsp
+	cmp r10,rsp
 	je allPopped
 	
 	pop rdi
-	mov QWORD[rax + rsi * 8], rdi
+	mov QWORD[r9 + rsi * 8], rdi
 	add rsi,1
 	
-	cmp r8,rsp
+	cmp r10,rsp
 	jg popTheRest
 ;****************************************************
 
@@ -257,22 +287,24 @@ popTheRest:
 
 allPopped:
 
+sub r11,r13
+
+pop r13
+pop r12 ;return r12
+
 ;mov rdi,rax
 ;mov rsi,r11
 ;sub rsi,rbx
 ;call larray_print
 
-sub r11,rbx
-
 mov rcx,0
 evaluate:
-	mov rsi,[rax + rcx * 8]
+	mov rsi,[r9 + rcx * 8]
 	add rcx,1
 	
-	cmp rsi,'0'
-	jl useOp
+	cmp rsi, 0x7FFFFFFA
+	jg useOp
 	
-	sub rsi,0x30
 	push rsi
 	
 backToCheckSize:
@@ -280,14 +312,22 @@ backToCheckSize:
 	jl evaluate
 	
 	; Free rax and r9
-	push r9
-	mov rdi,rax
-	call free
-	pop rdi
-	call free
+	;push r9
+	;mov rdi,r12
+	;call free
+	;pop rdi
+	;call free
+
+pop rax
+mov rcx,0
+popStuff:
+	pop rdx
+	add rcx,1
+	cmp rcx,rbx
+	jl popStuff
+
+pop rbx
 	
-	pop rax
-	pop rbx
 	ret
 ;****************************************************
 ;*******************End of system********************
@@ -308,13 +348,13 @@ backToCheckSize:
 ;====================================================
 
 useOp:
-	cmp rsi,'*'
+	cmp rsi,0x7FFFFFFD
 	je multiply
 	
-	cmp rsi,'+'
+	cmp rsi,0x7FFFFFFE
 	je addition
 	
-	cmp rsi,'-'
+	cmp rsi,0x7FFFFFFF
 	je subtraction
 	
 	jmp invalidOp
@@ -389,21 +429,25 @@ pushOp:
 
 popThenPush:
 	pop rdi
-	mov QWORD[rax + rsi * 8], rdi
+	mov QWORD[r9 + rsi * 8], rdi
 	push rdx
 	add rsi,1
 	jmp backFromHandleOp
+
+pushOpOpen:
+	sub r10,8
+	push rdx
+	jmp backFromHandleOp	
 	
 closeParenOp:
-	;sub r11,2
-	add rbx,2
+	add r13,2
 	pop rdi
 	
 	popThemAll:
-	mov QWORD[rax + rsi * 8], rdi
+	mov QWORD[r9 + rsi * 8], rdi
 	add rsi,1
 	pop rdi
-	cmp rdi,'('
+	cmp rdi,0x7FFFFFFB
 	jne popThemAll
 	
 	jmp backFromHandleOp
@@ -411,28 +455,28 @@ closeParenOp:
 	
 storeOp:
 	;no operators in stack (pointer location)
-	cmp rsp,r8
+	cmp rsp,r10
 	je pushOp
 	
 	;( operator on top (rsp value)
 	mov r8,QWORD[rsp]
-	cmp r8,'('
+	cmp r8,0x7FFFFFFB
 	je pushOp
 	
 	;current operator is (
-	cmp rdx,'('
-	je pushOp
+	cmp rdx,0x7FFFFFFB
+	je pushOpOpen
 	
 	;current operator is )
-	cmp rdx,')'
+	cmp rdx,0x7FFFFFFC
 	je closeParenOp
 	
 	;current operator is *
-	cmp rdx,'+'
+	cmp rdx,0x7FFFFFFE
 	jl incomingIsMult
 	
 	;current operator is + or -
-	cmp rdx,'+'
+	cmp rdx,0x7FFFFFFE
 	jge incomingIsAddOrSub
 	
 	jmp invalidOp
