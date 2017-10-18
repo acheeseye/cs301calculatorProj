@@ -3,7 +3,7 @@
 ## Description: 	
 - A calculator program that takes an infix expression and calculates the result by rearranging the expression into postfix. 
 - The system is limited to PERFECT input and only uses `+`, `-`, `*`, `(`, and `)` operators.  
-- The range of possible in/outputs are limited to 32 bit integers, excluding 0x7FFFFFFB ~ 0x7FFFFFFF as they are used for the five operators.  
+- The range of possible in/outputs are limited to signed 64 bit integers, excluding the largest five possible signed 64 bit integers (0x7fffFfffFfffFffB to 0x7fffFfffFfffFffF).
 - There are likely unconsidered cases which will result in a crash or incorrect output.
 
 ## Guidelines followed:
@@ -20,6 +20,20 @@
 ### Additional Guidelines for correct output:
 9. If incoming operator is `-`, make the next integer negative and the incoming operator `+`. This makes sure that a negative sign does not carry through to other operations.
 
+### REPNE SCASB
+We had to use REPNE SCASB to find the length of a string. The code is below:
+```
+mov rdi,QWORD[rdi]
+mov rcx,0
+mov rax,0
+not	rcx
+cld
+repne scasb
+not	rcx
+dec	rcx
+mov rbx,rcx
+```
+We didn't have enough time to find another alternative.
 ## v0.0:
 - Currently supports infix translation into postfix for `+` `-` and `*` operators
 - Undefined operators are set to `*`
