@@ -305,8 +305,6 @@ evaluate:
 	cmp rsi, 0x7FFFFFFA
 	jg useOp
 	
-	
-	
 	push rsi
 	
 backToCheckSize:
