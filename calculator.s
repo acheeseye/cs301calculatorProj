@@ -172,6 +172,7 @@ mov rdi,r14
 pop r14
 pop r15
 
+;the results are stored on the stack because malloc gets angry
 mov rcx,0
 storeToStack:
 	mov rax,QWORD[rdi + rcx * 8]
@@ -185,11 +186,14 @@ mov r11,rbx  ; r11 is the length of the condensed string
 ;====================================================
 ;Iterate the string
 ;====================================================
-;Looks at the characters of the unaltered stored
-;string. If the value is '0' ~ '9', then it is stored
-;to rax (;ELEMENT ADDED). Otherwise, it is assumed
-;the incoming character is an operator and moves it
-;to the storeOp loop. The string at rax is then
+;Looks at the values of multi-digit-considered values
+;on the stack. If the values are operators (largest 5), 
+;then it moves to the storeOp loop that pushes and
+;pops operators according to Guidelines Followed
+;(see README). Otherwise, the values are assumed to
+;be integers and stored as so in r9 (malloc'ed in
+;the multi-digit-analyzing stage because of some
+;malloc error). The string at r9 is then
 ;pushed on to the stack for evaluation and leaves the
 ;loop by jumping to allPopped.
 ;====================================================
@@ -200,7 +204,7 @@ mov r11,rbx  ; r11 is the length of the condensed string
 ;	storeOp, rsi doesnt NEED to increment, only 
 ;	when the stack is popped and data is stored to 
 ;	rax str)
-;r8 assists with knowing where rsp began; we need 
+;r10 assists with knowing where rsp began; we need 
 ;	this for: always pushing operator when stack is 
 ;	blank and making sure to pop all the non-popped 
 ;	operators
@@ -220,7 +224,6 @@ mov rcx,0
 mov r10,rsp
 
 rearrange:
-	mov rax,rsp
 	mov rdx,QWORD[r12 + rcx * 8]
 	cmp rdx,QWORD[OPEN_PAREN] ; OPEN_PAREN is the smallest operator constant
 	jge storeOp
@@ -229,13 +232,11 @@ rearrange:
 	add rsi,1
 	
 backFromHandleOp:
-
 	add rcx,1
 	cmp rcx,r11
 	jl rearrange
 	
-popTheRest:
-	mov rax,rsp	
+popTheRest:	
 	cmp r10,rsp
 	je allPopped
 	
@@ -253,8 +254,10 @@ popTheRest:
 ;The postfix array goes through the evaluate loop
 ;to evaluate the desired output.
 ;====================================================
-;rax is pointer to second string (postfix)
-;r11 is string size
+;r9 is pointer to second string (postfix)
+;r11 is string size, subtracted by r13 which accounts
+;	for usage of parentheses (not included in
+;	postfix notation)
 ;====================================================
 
 allPopped:
