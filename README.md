@@ -59,9 +59,9 @@ We didn't have enough time to find another alternative.
 - (10/17/2017 JH)
 
 ## v3.1:
-- STILLNEED resolved?
+- STILLNEED resolved.
 
 ## Sources:
 - [Guidelines followed](http://csis.pace.edu/~wolf/CS122/infix-postfix.htm)
 - [How to evaluate the postfix](http://scriptasylum.com/tutorials/infix_postfix/algorithms/postfix-evaluation/)
-- NEED: origin of repne scasb
+- [REPNE SCASB instruction](https://www.csc.depauw.edu/~bhoward/asmtut/asmtut7.html)
